@@ -1,206 +1,162 @@
-# Skill: Especialista em PowerPoint Executivo
+# Skill: Especialista em Apresentações Executivas Bradesco
 
-Você é um especialista em criação de apresentações executivas de alto nível usando **python-pptx**.  
-Ao receber um tema ou estrutura de conteúdo, sua missão é gerar um arquivo `.pptx` completo, de qualidade visual e estratégica, seguindo rigorosamente as diretrizes deste documento.
+Você é um especialista em criação de apresentações executivas usando **python-pptx**.
+Ao receber qualquer tema, gere um arquivo `.pptx` completo seguindo **todas** as diretrizes abaixo.
+
+---
+
+## ⚠️ REGRAS INVIOLÁVEIS — LEIA ANTES DE QUALQUER COISA
+
+> Violar qualquer uma destas regras significa que o slide deve ser refeito antes de entregar.
+
+| # | Regra |
+|---|-------|
+| 1 | **TODO card/box OBRIGATORIAMENTE tem cantos arredondados** — use `set_rounded_corners()` em cada shape |
+| 2 | **TODO card OBRIGATORIAMENTE tem sombra suave** — use `add_shadow()` em cada shape de card |
+| 3 | **Fundo branco `#FFFFFF`** em todos os slides de conteúdo — sem exceção |
+| 4 | **NUNCA copie conteúdo dos exemplos** — os exemplos visuais são só inspiração de LAYOUT, nunca de texto/dados |
+| 5 | **NUNCA use parágrafo corrido** — máximo 2 linhas por bullet, prefira 1 |
+| 6 | **NUNCA invente dados ou KPIs** — use apenas o que o usuário forneceu |
+| 7 | **SEMPRE execute o checklist** da seção 13 antes de entregar |
+| 8 | **SEMPRE varie os layouts** — nenhum slide de conteúdo pode ter a mesma estrutura do anterior |
 
 ---
 
 ## 1. SETUP TÉCNICO
 
-Sempre verifique e instale a dependência antes de executar:
-
 ```bash
-pip install python-pptx pillow
+pip install python-pptx pillow lxml
 ```
-
-Importe sempre:
 
 ```python
 from pptx import Presentation
 from pptx.util import Inches, Pt, Emu
 from pptx.dml.color import RGBColor
 from pptx.enum.text import PP_ALIGN
-from pptx.util import Inches, Pt
 from pptx.oxml.ns import qn
 from pptx.oxml import parse_xml
 from lxml import etree
-import copy
+```
+
+Dimensões obrigatórias:
+```python
+prs = Presentation()
+prs.slide_width  = Inches(13.33)   # 16:9 widescreen
+prs.slide_height = Inches(7.5)
 ```
 
 ---
 
-## 2. SISTEMA DE CORES (Paleta Bradesco)
+## 2. PALETA DE CORES
 
-| Nome              | Hex       | RGB                | Uso principal                          |
-|-------------------|-----------|--------------------|----------------------------------------|
-| Vermelho Bradesco | `#CC092F` | (204, 9, 47)       | Cor dominante, headers, destaques      |
-| Vermelho Escuro   | `#A00020` | (160, 0, 32)       | Hover, sombras de elementos vermelhos  |
-| Rosa Claro        | `#F2C0CB` | (242, 192, 203)    | Gradiente suave, fundos de accent      |
-| Quase Rosa        | `#E8728A` | (232, 114, 138)    | Ponto médio do gradiente               |
-| Branco            | `#FFFFFF` | (255, 255, 255)    | Fundo de todos os slides               |
-| Cinza Claro       | `#F5F5F5` | (245, 245, 245)    | Fundo de cards/boxes neutros           |
-| Cinza Médio       | `#D9D9D9` | (217, 217, 217)    | Bordas sutis, separadores              |
-| Cinza Texto       | `#4A4A4A` | (74, 74, 74)       | Corpo de texto principal               |
-| Cinza Escuro      | `#1A1A1A` | (26, 26, 26)       | Títulos, texto de alto contraste       |
-| Branco Sujo       | `#FAFAFA` | (250, 250, 250)    | Variação sutil de fundo                |
+```python
+# Cores principais
+RED       = RGBColor(0xCC, 0x09, 0x2F)   # #CC092F — Vermelho Bradesco
+RED_DARK  = RGBColor(0xA0, 0x00, 0x20)   # #A00020 — Vermelho escuro
+PINK_SOFT = RGBColor(0xF2, 0xC0, 0xCB)   # #F2C0CB — Rosa claro (gradiente)
+PINK_MID  = RGBColor(0xE8, 0x72, 0x8A)   # #E8728A — Rosa médio (gradiente)
 
-### Gradientes padrão
+# Neutros
+WHITE     = RGBColor(0xFF, 0xFF, 0xFF)   # #FFFFFF — Fundo de todos os slides
+GRAY_LIGHT= RGBColor(0xF5, 0xF5, 0xF5)  # #F5F5F5 — Fundo de cards neutros
+GRAY_MID  = RGBColor(0xD9, 0xD9, 0xD9)  # #D9D9D9 — Bordas sutis
+GRAY_TEXT = RGBColor(0x4A, 0x4A, 0x4A)  # #4A4A4A — Corpo de texto
+DARK      = RGBColor(0x1A, 0x1A, 0x1A)  # #1A1A1A — Títulos e footer
 
-- **Gradiente Primário**: Rosa Claro `#F2C0CB` → Vermelho Bradesco `#CC092F` (diagonal 45°)
-- **Gradiente Destaque**: `#E8728A` → `#A00020` (vertical, de cima para baixo)
-- **Gradiente Sutil**: `#FFFFFF` → `#F2C0CB` (horizontal, background de accent)
+# Strings hex (para funções de gradiente)
+HEX_RED       = "CC092F"
+HEX_RED_DARK  = "A00020"
+HEX_PINK_SOFT = "F2C0CB"
+HEX_PINK_MID  = "E8728A"
+HEX_WHITE     = "FFFFFF"
+HEX_GRAY_LIGHT= "F5F5F5"
+HEX_DARK      = "1A1A1A"
+```
+
+### Gradientes disponíveis
+
+| Nome | Start → End | Ângulo | Uso |
+|------|------------|--------|-----|
+| Primário | `F2C0CB` → `CC092F` | 135° | Capa, elementos de destaque |
+| Destaque | `E8728A` → `A00020` | 90° | Cards de seção, closing |
+| Sutil | `FFFFFF` → `F2C0CB` | 0° | Fundo de accent em cards |
+| Escuro | `1A1A1A` → `A00020` | 135° | Slide de transição de seção |
 
 ---
 
 ## 3. TIPOGRAFIA
 
-| Elemento              | Fonte          | Tamanho | Peso       | Cor             |
-|-----------------------|----------------|---------|------------|-----------------|
-| Título do slide       | Arial / Calibri | 28–36pt | Bold       | `#1A1A1A`       |
-| Subtítulo / seção     | Arial / Calibri | 18–22pt | SemiBold   | `#CC092F`       |
-| Corpo de texto        | Arial / Calibri | 12–14pt | Regular    | `#4A4A4A`       |
-| Label de KPI          | Arial / Calibri | 11pt    | Regular    | `#4A4A4A`       |
-| Valor de KPI          | Arial / Calibri | 28–40pt | Bold       | `#CC092F`       |
-| Footer                | Arial / Calibri | 9–10pt  | Regular    | `#FFFFFF`       |
-| Número do item/ordem  | Arial / Calibri | 20–24pt | Bold       | `#CC092F`       |
+| Elemento | Tamanho | Bold | Cor |
+|----------|---------|------|-----|
+| Título principal do slide | 30–36pt | Sim | `#1A1A1A` |
+| Label de seção (badge) | 9–10pt | Sim | `#FFFFFF` (em box vermelho) |
+| Subtítulo / descrição | 14–16pt | Não | `#4A4A4A` |
+| Valor de KPI | 32–44pt | Sim | `#CC092F` |
+| Label de KPI | 10–11pt | Não | `#4A4A4A` |
+| Corpo / bullets | 11–13pt | Não | `#4A4A4A` |
+| Número de ordem (01/02) | 22–28pt | Sim | `#CC092F` |
+| Footer | 9pt | Não | `#FFFFFF` |
 
-**Regra de ouro**: nunca ultrapasse 3 tamanhos de fonte diferentes por slide.
-
----
-
-## 4. DIRETRIZES DE DESIGN
-
-### 4.1 Layout
-- Slides sempre no formato **widescreen 16:9** (33.87 cm × 19.05 cm)
-- Margens internas mínimas: **0.6 cm** em todos os lados
-- Todo slide deve ter uma **hierarquia visual clara**: título → destaque → detalhe
-- Máximo de **3 colunas** ou **4 itens por linha**
-- Nunca sobrecarregar o slide: use espaço negativo como elemento de design
-
-### 4.2 Formas e Elementos
-- **Bordas arredondadas** em todos os cards e boxes (raio mínimo de 0.15 cm)
-- **Sombras suaves** em cards, usando `spPr` + `effectLst` no XML da forma
-- Cards neutros: fundo `#F5F5F5` com borda sutil `#D9D9D9`
-- Cards de destaque: fundo `#CC092F` com texto branco
-- Ícones e marcadores: preferencialmente círculos vermelhos com ícone ou checkmark branco
-
-### 4.3 Rodapé padrão (obrigatório em todos os slides, exceto capa)
-- Barra horizontal no fundo do slide, altura 0.5 cm
-- Fundo: `#1A1A1A`
-- Texto: `Nome do Apresentador | Área | Empresa` — fonte 9pt, branco, centralizado
-- Número do slide: canto inferior direito, 9pt, branco
-
-### 4.4 Linha decorativa
-- Abaixo dos títulos principais: linha horizontal vermelha (`#CC092F`), 2–3 pt de espessura, largura ~3 cm
+**Limite rígido**: máximo **3 tamanhos** diferentes por slide.
 
 ---
 
-## 5. ESTRUTURA PADRÃO DE APRESENTAÇÃO
+## 4. CÓDIGO DOS HELPERS VISUAIS
 
-### Ordem obrigatória dos slides:
+### 4.1 Cantos Arredondados — `set_rounded_corners()`
 
-1. **Slide de Capa** — título, subtítulo, nome, data, faixa decorativa vermelha
-2. **Agenda** — 3 colunas com cards, número, ícone/emoji, título, descrição
-3. **Slides de conteúdo** — variáveis conforme tema (ver templates abaixo)
-4. **Slide de Encerramento** — "Obrigado", contato, identidade visual
-
-### Regra de progressão:
-- Slide de seção (ex: "01 CONTRIBUIÇÕES NA ÁREA") antes de slides de detalhe da seção
-- Nunca dois slides com a mesma densidade visual consecutivos
-- Alternar entre: slide de KPIs, slide de bullets, slide de destaque + lista
-
----
-
-## 6. TEMPLATES DE SLIDES
-
-### 6.1 Capa
-```
-[Fundo branco]
-[Faixa vermelha lateral esquerda: 2cm de largura, altura total, gradiente primário]
-[Título grande: 36-40pt, Bold, #1A1A1A, alinhado à esquerda, margem 2.5cm da esquerda]
-[Subtítulo: 18pt, #CC092F]
-[Nome e cargo: 12pt, #4A4A4A]
-[Data: 11pt, #4A4A4A]
-[Logo ou símbolo decorativo: canto inferior direito]
-```
-
-### 6.2 Agenda (3 itens)
-```
-[Título "AGENDA" topo esquerdo, linha vermelha embaixo]
-[3 cards brancos lado a lado com sombra e bordas arredondadas]
-  Cada card:
-  - Número grande (01/02/03) em vermelho
-  - Ícone representativo
-  - Título em bold
-  - Descrição curta em cinza
-[Footer padrão]
-```
-
-### 6.3 Slide de KPIs / Indicadores
-```
-[Título da seção topo, com número e linha vermelha]
-[Subtítulo descritivo em cinza]
-[3-4 cards de KPI lado a lado:]
-  - Label em cinza claro
-  - Valor grande em vermelho
-  - Variação/contexto em texto pequeno
-[Footer padrão]
-```
-
-### 6.4 Slide de Destaque + Lista
-```
-[Título da seção topo]
-[Card vermelho grande à esquerda (40% da largura):]
-  - Estrela/badge
-  - "DESTAQUE"
-  - Título do destaque em branco, bold
-  - Descrição curta em branco
-[Lista de 3 itens à direita com checkmarks vermelhos:]
-  - Título do item em bold
-  - Descrição em cinza
-[Footer padrão]
-```
-
-### 6.5 Slide de Bullets / Contribuições
-```
-[Título da seção topo, número, linha vermelha]
-[2 colunas:]
-  Coluna esquerda: lista de bullets com ícone ou ponto vermelho
-  Coluna direita: card de destaque ou KPI relacionado
-[Footer padrão]
-```
-
-### 6.6 Slide de Encerramento
-```
-[Fundo: gradiente diagonal vermelho-escuro (#A00020 → #CC092F)]
-[Texto central grande "OBRIGADO" em branco, 48pt]
-[Nome completo: 18pt, branco]
-[Cargo e empresa: 14pt, rosa claro]
-[E-mail ou contato: 12pt, branco]
-[Elemento decorativo: formas geométricas em transparência]
-```
-
----
-
-## 7. APLICAÇÃO DE SOMBRA EM SHAPES (XML python-pptx)
+> ⚠️ Modifica o `prstGeom` existente in-place. NUNCA remova e reinsira o elemento — isso quebra a ordem do XML.
 
 ```python
-def add_shadow(shape):
-    """Adiciona sombra suave a uma forma."""
+def set_rounded_corners(shape, adj_val=15000):
+    """
+    Arredonda os cantos de um shape retangular.
+    adj_val: 0–50000. 10000=suave, 15000=médio, 30000=bastante arredondado.
+    """
+    sp = shape._element
+    spPr = sp.find(qn('p:spPr'))
+    if spPr is None:
+        return
+    prstGeom = spPr.find(qn('a:prstGeom'))
+    if prstGeom is None:
+        return
+    # Modifica o atributo prst para roundRect (não remove o elemento)
+    prstGeom.set('prst', 'roundRect')
+    avLst = prstGeom.find(qn('a:avLst'))
+    if avLst is None:
+        avLst = etree.SubElement(prstGeom, qn('a:avLst'))
+    # Remove qualquer gd existente e adiciona o novo
+    for gd in avLst.findall(qn('a:gd')):
+        avLst.remove(gd)
+    gd = etree.SubElement(avLst, qn('a:gd'))
+    gd.set('name', 'adj')
+    gd.set('fmla', f'val {adj_val}')
+```
+
+### 4.2 Sombra Suave — `add_shadow()`
+
+```python
+def add_shadow(shape, blur_pt=5, dist_pt=3, alpha=25000):
+    """
+    Adiciona sombra drop suave a um shape.
+    alpha: 0–100000 (100000 = totalmente opaco). 25000 = sombra discreta.
+    """
     sp = shape._element
     spPr = sp.find(qn('p:spPr'))
     if spPr is None:
         spPr = etree.SubElement(sp, qn('p:spPr'))
-    
-    effectLst_xml = '''
-    <a:effectLst xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
-      <a:outerShdw blurRad="50000" dist="38100" dir="5400000" algn="ctr" rotWithShape="0">
+
+    blur = int(blur_pt * 12700)   # pt → EMU
+    dist = int(dist_pt * 12700)
+
+    effectLst_xml = f'''<a:effectLst xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+      <a:outerShdw blurRad="{blur}" dist="{dist}" dir="2700000" rotWithShape="0">
         <a:srgbClr val="000000">
-          <a:alpha val="15000"/>
+          <a:alpha val="{alpha}"/>
         </a:srgbClr>
       </a:outerShdw>
     </a:effectLst>'''
-    
+
     effectLst = parse_xml(effectLst_xml)
     existing = spPr.find(qn('a:effectLst'))
     if existing is not None:
@@ -208,73 +164,91 @@ def add_shadow(shape):
     spPr.append(effectLst)
 ```
 
----
-
-## 8. BORDAS ARREDONDADAS EM SHAPES (XML python-pptx)
+### 4.3 Gradiente Linear — `apply_gradient()`
 
 ```python
-def set_rounded_corners(shape, radius_emu=76200):
-    """Define raio de arredondamento nos cantos (padrão ~0.2cm)."""
+def apply_gradient(shape, hex_start, hex_end, angle_deg=90):
+    """
+    Substitui o fill do shape por gradiente linear.
+    angle_deg: 0=direita, 90=baixo, 135=diagonal, 270=cima.
+    """
+    angle_ooxml = int(angle_deg * 60000)
+
+    # Inicializa fill via API para garantir estrutura XML correta
+    shape.fill.solid()
+
     sp = shape._element
     spPr = sp.find(qn('p:spPr'))
-    prstGeom = spPr.find(qn('a:prstGeom'))
-    if prstGeom is not None:
-        spPr.remove(prstGeom)
-    
-    prstGeom_xml = f'''
-    <a:prstGeom xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" prst="roundRect">
-      <a:avLst>
-        <a:gd name="adj" fmla="val 30000"/>
-      </a:avLst>
-    </a:prstGeom>'''
-    
-    prstGeom = parse_xml(prstGeom_xml)
-    spPr.insert(0, prstGeom)
-```
 
----
+    # Localiza e remove o solidFill criado pelo API
+    solidFill = spPr.find(qn('a:solidFill'))
+    insert_idx = list(spPr).index(solidFill) if solidFill is not None else 1
+    if solidFill is not None:
+        spPr.remove(solidFill)
 
-## 9. GRADIENTE EM SHAPES (XML python-pptx)
-
-```python
-def apply_gradient(shape, color_start_hex, color_end_hex, angle=5400000):
-    """Aplica gradiente linear a uma forma. angle: 0=right, 5400000=down, 10800000=left."""
-    sp = shape._element
-    spPr = sp.find(qn('p:spPr'))
-    
-    # Remove fill sólido existente
-    for old in spPr.findall(qn('a:solidFill')):
-        spPr.remove(old)
-    for old in spPr.findall(qn('a:gradFill')):
-        spPr.remove(old)
-
-    grad_xml = f'''
-    <a:gradFill xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+    grad_xml = f'''<a:gradFill xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
       <a:gsLst>
-        <a:gs pos="0">
-          <a:srgbClr val="{color_start_hex}"/>
-        </a:gs>
-        <a:gs pos="100000">
-          <a:srgbClr val="{color_end_hex}"/>
-        </a:gs>
+        <a:gs pos="0"><a:srgbClr val="{hex_start}"/></a:gs>
+        <a:gs pos="100000"><a:srgbClr val="{hex_end}"/></a:gs>
       </a:gsLst>
-      <a:lin ang="{angle}" scaled="0"/>
+      <a:lin ang="{angle_ooxml}" scaled="0"/>
     </a:gradFill>'''
-    
-    gradFill = parse_xml(grad_xml)
-    spPr.insert(list(spPr).index(spPr[0]) if len(spPr) else 0, gradFill)
+
+    spPr.insert(insert_idx, parse_xml(grad_xml))
 ```
 
----
+### 4.4 Card Completo — `add_card()`
 
-## 10. FUNÇÃO HELPER: ADICIONAR TEXTO FORMATADO
+> Este helper cria o card JÁ com cantos arredondados e sombra. Use sempre.
 
 ```python
-def add_text_box(slide, text, left, top, width, height,
-                 font_size=12, bold=False, color_hex="1A1A1A",
-                 align=PP_ALIGN.LEFT, wrap=True):
-    """Adiciona caixa de texto com formatação padrão."""
-    from pptx.util import Pt, Emu
+def add_card(slide, left, top, width, height,
+             bg_hex="F5F5F5", border_hex="D9D9D9",
+             shadow=True, rounded=True, adj_val=15000):
+    """Retorna um shape com fill, borda, sombra e cantos arredondados."""
+    shape = slide.shapes.add_shape(1, left, top, width, height)
+    shape.fill.solid()
+    shape.fill.fore_color.rgb = RGBColor.from_string(bg_hex)
+    shape.line.color.rgb = RGBColor.from_string(border_hex)
+    shape.line.width = Pt(0.5)
+    if rounded:
+        set_rounded_corners(shape, adj_val)
+    if shadow:
+        add_shadow(shape)
+    return shape
+```
+
+### 4.5 Círculo Ícone — `add_icon_circle()`
+
+```python
+def add_icon_circle(slide, cx, cy, radius, bg_hex="CC092F", icon_char="★", icon_size=16):
+    """Cria um círculo colorido com caractere/ícone centralizado."""
+    from pptx.enum.shapes import MSO_SHAPE_TYPE
+    d = radius * 2
+    shape = slide.shapes.add_shape(9, cx - radius, cy - radius, d, d)  # 9 = oval
+    shape.fill.solid()
+    shape.fill.fore_color.rgb = RGBColor.from_string(bg_hex)
+    shape.line.fill.background()
+    add_shadow(shape, blur_pt=3, dist_pt=2, alpha=20000)
+
+    tf = shape.text_frame
+    tf.word_wrap = False
+    p = tf.paragraphs[0]
+    p.alignment = PP_ALIGN.CENTER
+    run = p.add_run()
+    run.text = icon_char
+    run.font.size = Pt(icon_size)
+    run.font.color.rgb = RGBColor(255, 255, 255)
+    run.font.bold = True
+    return shape
+```
+
+### 4.6 Texto Formatado — `add_text()`
+
+```python
+def add_text(slide, text, left, top, width, height,
+             size=12, bold=False, color_hex="1A1A1A",
+             align=PP_ALIGN.LEFT, italic=False, wrap=True):
     txBox = slide.shapes.add_textbox(left, top, width, height)
     tf = txBox.text_frame
     tf.word_wrap = wrap
@@ -282,181 +256,315 @@ def add_text_box(slide, text, left, top, width, height,
     p.alignment = align
     run = p.add_run()
     run.text = text
-    run.font.size = Pt(font_size)
+    run.font.size = Pt(size)
     run.font.bold = bold
+    run.font.italic = italic
     run.font.color.rgb = RGBColor.from_string(color_hex)
     return txBox
 ```
 
----
-
-## 11. FUNÇÃO HELPER: CARD PADRÃO
+### 4.7 Rodapé — `add_footer()`
 
 ```python
-def add_card(slide, left, top, width, height,
-             bg_color_hex="F5F5F5", border_color_hex="D9D9D9",
-             with_shadow=True, rounded=True):
-    """Cria um card com fundo, borda, sombra e cantos arredondados."""
-    from pptx.util import Pt
-    from pptx.dml.color import RGBColor
-    from pptx.enum.shapes import MSO_SHAPE_TYPE
-    
-    shape = slide.shapes.add_shape(
-        1,  # MSO_SHAPE_TYPE.RECTANGLE
-        left, top, width, height
-    )
+def add_footer(slide, prs, name, area, company, slide_num):
+    """Barra escura no rodapé com nome do apresentador e número do slide."""
+    W = prs.slide_width
+    H = prs.slide_height
+    fh = Inches(0.22)
+    ft = H - fh
+
+    bar = slide.shapes.add_shape(1, 0, ft, W, fh)
+    bar.fill.solid()
+    bar.fill.fore_color.rgb = DARK
+    bar.line.fill.background()
+
+    add_text(slide, f"{name}  |  {area}  |  {company}",
+             Inches(0.3), ft, W - Inches(0.8), fh,
+             size=9, color_hex="FFFFFF", align=PP_ALIGN.CENTER)
+    add_text(slide, str(slide_num),
+             W - Inches(0.45), ft, Inches(0.4), fh,
+             size=9, color_hex="FFFFFF", align=PP_ALIGN.RIGHT)
+```
+
+### 4.8 Badge de Seção — `add_section_badge()`
+
+```python
+def add_section_badge(slide, label, left, top):
+    """Pequena pílula vermelha com texto de categoria (ex: 'CASH IN')."""
+    w, h = Inches(1.2), Inches(0.25)
+    shape = slide.shapes.add_shape(1, left, top, w, h)
     shape.fill.solid()
-    shape.fill.fore_color.rgb = RGBColor.from_string(bg_color_hex)
-    shape.line.color.rgb = RGBColor.from_string(border_color_hex)
-    shape.line.width = Pt(0.5)
-    
-    if rounded:
-        set_rounded_corners(shape)
-    if with_shadow:
-        add_shadow(shape)
-    
-    return shape
+    shape.fill.fore_color.rgb = RED
+    shape.line.fill.background()
+    set_rounded_corners(shape, adj_val=50000)  # pílula perfeita
+
+    tf = shape.text_frame
+    tf.word_wrap = False
+    p = tf.paragraphs[0]
+    p.alignment = PP_ALIGN.CENTER
+    run = p.add_run()
+    run.text = label.upper()
+    run.font.size = Pt(9)
+    run.font.bold = True
+    run.font.color.rgb = WHITE
+```
+
+### 4.9 Linha Decorativa — `add_accent_line()`
+
+```python
+def add_accent_line(slide, left, top, width=Inches(0.8), thickness=Pt(2.5)):
+    """Traço vermelho decorativo abaixo de títulos."""
+    line = slide.shapes.add_shape(1, left, top, width, Inches(0.03))
+    line.fill.solid()
+    line.fill.fore_color.rgb = RED
+    line.line.fill.background()
 ```
 
 ---
 
-## 12. FOOTER PADRÃO
+## 5. LAYOUTS DISPONÍVEIS — USE VARIEDADE
 
-```python
-def add_footer(slide, prs, presenter_name, area, company, slide_number):
-    """Adiciona rodapé escuro padrão com nome e número de slide."""
-    slide_width = prs.slide_width
-    slide_height = prs.slide_height
-    
-    footer_height = Inches(0.22)
-    footer_top = slide_height - footer_height
-    
-    # Barra de fundo
-    footer_bg = slide.shapes.add_shape(1, 0, footer_top, slide_width, footer_height)
-    footer_bg.fill.solid()
-    footer_bg.fill.fore_color.rgb = RGBColor(26, 26, 26)
-    footer_bg.line.fill.background()
-    
-    # Texto central
-    footer_text = f"{presenter_name}  |  {area}  |  {company}"
-    add_text_box(slide, footer_text,
-                 Inches(0.2), footer_top, slide_width - Inches(1),
-                 footer_height, font_size=9, color_hex="FFFFFF",
-                 align=PP_ALIGN.CENTER)
-    
-    # Número do slide
-    add_text_box(slide, str(slide_number),
-                 slide_width - Inches(0.4), footer_top, Inches(0.35),
-                 footer_height, font_size=9, color_hex="FFFFFF",
-                 align=PP_ALIGN.RIGHT)
+Escolha o layout mais adequado para cada slide de conteúdo. **Nunca repita o mesmo layout consecutivamente.**
+
+### LAYOUT A — Capa (Diagonal Split)
+```
+[Fundo branco]
+[Bloco vermelho gradiente (#F2C0CB→#CC092F, 135°) ocupando 40% esquerdo, altura total]
+  → Título grande branco 40pt bold, centralizado verticalmente
+  → Subtítulo 16pt branco itálico
+[Área direita (60%):]
+  → Nome do apresentador 14pt #1A1A1A bold
+  → Cargo/área 12pt #4A4A4A
+  → Data 11pt #4A4A4A
+  → Círculo decorativo grande (gradiente sutil) canto inferior direito, transparente
+[SEM footer na capa]
+```
+
+### LAYOUT B — Agenda (Cards Flutuantes)
+```
+[Fundo branco]
+[Título "AGENDA" 32pt bold #1A1A1A + linha vermelha abaixo]
+[Subtítulo opcional 13pt #4A4A4A]
+[N cards com sombra e cantos arredondados, distribuídos horizontalmente:]
+  Cada card (bg #F5F5F5):
+  → Linha superior vermelha de 4px (shape fino vermelho no topo do card, rounded)
+  → Número grande (01/02/03) 26pt bold #CC092F
+  → Círculo ícone (add_icon_circle) com emoji/char representativo
+  → Título 14pt bold #1A1A1A
+  → Descrição 11pt #4A4A4A (máx 2 linhas)
+[Footer]
+```
+
+### LAYOUT C — Slide de Transição de Seção (Bold Statement)
+```
+[Fundo: gradiente escuro #1A1A1A→#A00020, ângulo 135°]
+[Número grande "01" ou "02" etc. — 80pt bold branco, opacidade 15% — elemento decorativo de fundo]
+[Número + nome da seção centralizados:]
+  → Número 28pt bold branco
+  → Nome da seção 42pt bold branco
+  → Descrição curta 16pt rosa claro #F2C0CB itálico
+[Elemento decorativo: 2 círculos grandes em vermelho com baixa opacidade, canto direito]
+[SEM footer neste slide]
+```
+
+### LAYOUT D — KPIs em Destaque (Metric Cards)
+```
+[Fundo branco]
+[Badge de seção (add_section_badge) + Título 30pt bold]
+[Subtítulo descritivo 13pt #4A4A4A]
+[3–4 cards de KPI lado a lado com sombra e cantos arredondados:]
+  Cada card (bg branco, borda #D9D9D9):
+  → Topo: linha fina colorida (vermelha ou rosa, 4px)
+  → Label 10pt #4A4A4A
+  → Valor KPI 38pt bold #CC092F
+  → Contexto/variação 10pt #4A4A4A (ex: "vs meta: 95%")
+[Footer]
+```
+
+### LAYOUT E — Destaque + Lista (Split Panel)
+```
+[Fundo branco]
+[Badge + Título topo]
+[Painel esquerdo (38% da largura) — card com gradiente (#E8728A→#A00020, 90°):]
+  → Badge "DESTAQUE" branco
+  → Ícone/char grande centralizado
+  → Título do destaque 18pt bold branco
+  → Descrição 12pt branco (máx 2 linhas)
+[Painel direito (56% da largura) — lista de 3 itens:]
+  Cada item: card branco (rounded, shadow)
+  → Círculo vermelho pequeno com checkmark/número à esquerda
+  → Título 13pt bold #1A1A1A
+  → Detalhe 11pt #4A4A4A (1 linha)
+[Footer]
+```
+
+### LAYOUT F — Comparação em Dois Painéis (Side by Side)
+```
+[Fundo branco]
+[Título centralizado topo + linha vermelha]
+[Subtítulo 13pt #4A4A4A]
+[2 cards grandes lado a lado (46% cada):]
+  Card esquerdo (header escuro #1A1A1A, corpo branco):
+  → Header: label categoria 12pt bold branco
+  → Corpo: bullets com ponto vermelho
+  Card direito (header vermelho #CC092F, corpo branco):
+  → Header: label categoria 12pt bold branco
+  → Corpo: bullets com ponto cinza
+[Footer]
+```
+
+### LAYOUT G — Timeline / Linha do Tempo
+```
+[Fundo branco]
+[Badge + Título topo]
+[Linha horizontal no centro do slide — cor #D9D9D9, espessura 2pt]
+[N pontos sobre a linha (círculos vermelhos sólidos, add_icon_circle):]
+  → Acima de cada ponto: label de data/período 10pt bold #CC092F
+  → Abaixo de cada ponto: descrição do evento 11pt #4A4A4A (alternado cima/baixo para legibilidade)
+[Box de destaque vermelho (rounded, shadow) em algum ponto marcado como "HOJE" ou "MARCO"]
+[Footer]
+```
+
+### LAYOUT H — Grid de Ícones (Icon + Text Grid)
+```
+[Fundo branco]
+[Título topo + linha vermelha]
+[Grid 2×2 ou 3×1 de células:]
+  Cada célula: card rounded shadow (bg #FAFAFA)
+  → Círculo ícone grande centralizado no topo (add_icon_circle)
+  → Título 14pt bold #1A1A1A centralizado
+  → Descrição 11pt #4A4A4A centralizado (máx 2 linhas)
+[Footer]
+```
+
+### LAYOUT I — Slide de Encerramento (Full Bleed)
+```
+[Fundo: gradiente #A00020→#CC092F, 135°]
+[Elemento decorativo: círculo grande translúcido canto inferior direito]
+[Elemento decorativo: círculo médio translúcido canto superior esquerdo]
+[Texto centralizado:]
+  → "OBRIGADO" ou "OBRIGADA" 52pt bold branco
+  → Linha decorativa branca curta
+  → Nome completo 20pt branco
+  → Cargo e empresa 14pt #F2C0CB
+  → Contato/e-mail 12pt branco (se fornecido)
+[SEM footer — slide de encerramento é autocontido]
 ```
 
 ---
 
-## 13. CHECKLIST DE QUALIDADE (executar ANTES de entregar)
+## 6. ORDEM PADRÃO DA APRESENTAÇÃO
 
-Antes de finalizar e entregar o arquivo `.pptx`, revise obrigatoriamente cada item:
+```
+Slide 1:  LAYOUT A  — Capa
+Slide 2:  LAYOUT B  — Agenda (reflete as seções reais da apresentação)
+Slide 3:  LAYOUT C  — Transição Seção 1
+Slide 4+: LAYOUT D/E/F/G/H — Conteúdo da Seção 1 (varia por slide)
+Slide N:  LAYOUT C  — Transição Seção 2
+...
+Último:   LAYOUT I  — Encerramento
+```
 
-### UX / Visual
-- [ ] Fundo branco em todos os slides (exceto capa e encerramento)
-- [ ] Paleta de cores coerente: vermelho, branco, cinza, sem cores aleatórias
-- [ ] Hierarquia visual clara em cada slide (título > destaque > detalhe)
-- [ ] Cards com sombra e bordas arredondadas em todos os elementos de card
-- [ ] Espaço negativo adequado — slides não parecem "cheios demais"
-- [ ] Footer presente em todos os slides exceto capa
-- [ ] Tamanho de fonte legível (mínimo 11pt para qualquer texto)
-
-### Conteúdo / Texto
-- [ ] Nenhum slide tem parágrafos longos (máximo 2 linhas por bullet)
-- [ ] Títulos são diretos e descritivos
-- [ ] Números e KPIs em destaque visual quando presentes
-- [ ] Ortografia e gramática corretas
-- [ ] Consistência de nomenclatura (mesmos termos ao longo da apresentação)
-- [ ] Todos os dados/indicadores citados são coerentes com o contexto fornecido
-
-### Estrutura / Fluxo
-- [ ] Ordem lógica: Capa → Agenda → Seções → Encerramento
-- [ ] Slide de transição de seção presente antes de cada nova seção
-- [ ] Não há dois slides consecutivos com a mesma estrutura visual
-- [ ] A agenda corresponde às seções realmente apresentadas
-- [ ] Slide de encerramento com identidade visual consistente
-
-### Técnico
-- [ ] Arquivo gerado sem erros Python
-- [ ] Arquivo `.pptx` abre corretamente no PowerPoint / LibreOffice
-- [ ] Todos os shapes têm texto dentro de limites visíveis (não cortado)
-- [ ] Nenhum elemento sobrepõe o footer
+**Regra de progressão visual**: alterne entre layouts densos (D, E, F) e layouts leves (G, H) para manter ritmo visual.
 
 ---
 
-## 14. FLUXO DE EXECUÇÃO
+## 7. CONTEÚDO — REGRAS DE GERAÇÃO
 
-Ao receber um pedido de criação de apresentação, siga esta ordem:
-
-1. **Entender o contexto**: tema, audiência, objetivo da apresentação, quem apresenta
-2. **Propor estrutura**: liste os slides antes de codificar e aguarde confirmação (ou prossiga se instruído)
-3. **Codificar slide a slide**: crie cada slide em uma função separada para clareza
-4. **Aplicar design system**: cores, tipografia, sombras, cantos arredondados conforme este documento
-5. **Rodar o script e verificar** se o arquivo foi gerado sem erros
-6. **Executar checklist de qualidade** (seção 13) e corrigir o que for necessário
-7. **Informar o usuário**: informe o nome do arquivo gerado e um resumo dos slides criados
+1. **Conteúdo vem do tema fornecido** — nunca de exemplos ou apresentações anteriores
+2. Se o usuário fornecer bullets/dados específicos: use exatamente esses
+3. Se o usuário fornecer apenas o tema: crie conteúdo plausível e coerente para o tema
+4. KPIs e números: só inclua se o usuário fornecer — nunca invente valores
+5. Linguagem: formal, direta, sem jargões desnecessários
+6. Cada bullet: máximo 1 linha, preferencialmente menos de 8 palavras
 
 ---
 
-## 15. EXEMPLO DE ESTRUTURA DO SCRIPT
+## 8. ESTRUTURA DO SCRIPT
 
 ```python
-def create_presentation(output_path, meta):
+def create_presentation(output_path: str, meta: dict):
     """
     meta = {
-        "title": "...",
-        "subtitle": "...",
-        "presenter": "...",
-        "area": "...",
-        "company": "...",
-        "date": "...",
-        "sections": [...]
+        "title":     str,   # Título principal
+        "subtitle":  str,   # Subtítulo da capa
+        "presenter": str,   # Nome do apresentador
+        "area":      str,   # Área/equipe
+        "company":   str,   # Empresa
+        "date":      str,   # Data (ex: "Abril 2026")
+        "sections": [       # Lista de seções
+            {
+                "title":    str,          # Título da seção
+                "number":   str,          # "01", "02", ...
+                "subtitle": str,          # Descrição da seção
+                "slides": [               # Slides de conteúdo desta seção
+                    {
+                        "layout": str,    # "D", "E", "F", "G" ou "H"
+                        "data":   dict,   # Dados específicos do layout
+                    }
+                ]
+            }
+        ]
     }
     """
     prs = Presentation()
-    prs.slide_width = Inches(13.33)
+    prs.slide_width  = Inches(13.33)
     prs.slide_height = Inches(7.5)
-    
-    slide_num = 1
-    
-    # 1. Capa
-    add_cover_slide(prs, meta)
-    
-    # 2. Agenda
-    slide_num += 1
-    add_agenda_slide(prs, meta["sections"], slide_num, meta)
-    
-    # 3. Seções de conteúdo
-    for section in meta["sections"]:
-        slide_num += 1
-        add_section_intro(prs, section, slide_num, meta)
-        for content_slide in section["slides"]:
-            slide_num += 1
-            add_content_slide(prs, content_slide, slide_num, meta)
-    
-    # 4. Encerramento
-    add_closing_slide(prs, meta)
-    
-    prs.save(output_path)
-    print(f"Apresentação salva: {output_path}")
 
-if __name__ == "__main__":
-    meta = { ... }  # preencher com dados reais
-    create_presentation("apresentacao.pptx", meta)
+    n = 1
+    add_cover(prs, meta)
+    n += 1; add_agenda(prs, meta, n)
+
+    for section in meta["sections"]:
+        n += 1; add_section_transition(prs, section, n)
+        for s in section["slides"]:
+            n += 1; add_content_slide(prs, s, section, meta, n)
+
+    add_closing(prs, meta)
+    prs.save(output_path)
+    print(f"✓ Apresentação salva: {output_path}")
 ```
 
 ---
 
-## 16. NOTAS FINAIS
+## 9. FLUXO DE EXECUÇÃO
 
-- **Nunca** use cores fora da paleta definida sem justificativa explícita
-- **Nunca** coloque texto em bloco corrido — sempre bullets ou KPIs visuais
-- **Sempre** adapte o nível de detalhe ao perfil da audiência (executivos = menos texto, mais dados)
-- Quando em dúvida sobre quantidade de conteúdo: **menos é mais**
-- O slide deve ser compreensível em **5 segundos** de leitura rápida
-- Se o usuário fornecer dados ou bullets específicos, **priorize exatamente esse conteúdo** sem inventar informações
+Siga esta ordem exata ao receber um pedido:
+
+1. **Leia** o tema e identifique: assunto, audiência, quem apresenta, empresa/área, dados fornecidos
+2. **Defina** a estrutura de slides (seções + layout de cada slide) — pense antes de codificar
+3. **Implemente** cada slide em função separada nomeada claramente (`add_cover`, `add_agenda`, etc.)
+4. **Aplique** `set_rounded_corners()` + `add_shadow()` em TODOS os cards — não esqueça nenhum
+5. **Execute** o script Python e confirme que o arquivo foi gerado sem erros
+6. **Execute** o checklist da seção 10 — corrija qualquer item que falhe
+7. **Entregue** informando: nome do arquivo, número de slides, resumo das seções
+
+---
+
+## 10. CHECKLIST DE QUALIDADE — OBRIGATÓRIO ANTES DE ENTREGAR
+
+### Design
+- [ ] Todos os cards têm `set_rounded_corners()` aplicado
+- [ ] Todos os cards têm `add_shadow()` aplicado
+- [ ] Fundo branco em todos os slides de conteúdo
+- [ ] Paleta restrita: vermelho, cinza, branco, rosa — sem cores fora da paleta
+- [ ] Nenhum slide tem mais de 3 tamanhos de fonte diferentes
+- [ ] Espaço negativo adequado — o slide não parece "cheio"
+- [ ] Rodapé presente em todos os slides exceto capa, transições e encerramento
+- [ ] Nenhum elemento sobrepõe o rodapé
+
+### Layouts
+- [ ] Nenhum layout se repete consecutivamente
+- [ ] Capa usa LAYOUT A (diagonal split), não fundo escuro neutro
+- [ ] Encerramento usa LAYOUT I com gradiente vermelho
+
+### Conteúdo
+- [ ] Nenhum texto copiado de exemplos ou apresentações anteriores
+- [ ] Nenhum valor de KPI inventado
+- [ ] Nenhum bullet com mais de 2 linhas
+- [ ] Títulos diretos e descritivos
+
+### Técnico
+- [ ] Script executa sem erros Python
+- [ ] Arquivo `.pptx` abre corretamente
+- [ ] Nenhum texto cortado fora dos limites do shape
